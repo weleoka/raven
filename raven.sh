@@ -1,3 +1,0 @@
-#!/bin/bash
-
-./raven.py
