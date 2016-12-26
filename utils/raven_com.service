@@ -1,0 +1,20 @@
+[Unit]
+Description=Raven communications.
+After=network.target
+#After=syslog.target
+#Wants=network.target
+
+
+[Service]
+Type=simple
+#User=raven
+#Group=raven
+WorkingDirectory=/home/sikkaflex/wrkspc/raven/
+ExecStart=/usr/bin/python3 raven_com
+Restart=always
+StandardOutput=journal
+StandardError=journal
+#CPUSchedulingPolicy=idle
+
+[Install]
+WantedBy=multi-user.target
