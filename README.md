@@ -20,6 +20,8 @@ raveneye
 
 ### Overview
 
+#-> Data structure serialisation uses json.decode json.loads. This is slow.
+
 
 
 ### Installation
@@ -64,6 +66,8 @@ If you'd like to contribute to raven's development, start by forking the GitHub 
 https://github.com/weleoka/raven.git
 
 Have a look at the known issues and missing features and take a pick or find something else that needs doing.
+
+You can search for need-doing tags "#->" in the source code.
 
 The best way to get your changes merged is as follows:
 

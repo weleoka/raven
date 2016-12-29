@@ -6,27 +6,36 @@ Main app to connect an email snd/rcv functionality and fish instructions out of 
 
 These messages act as commands for Raven.
 
-Raven presents an Email API to interface with web API services. 
+Raven presents an Email API to interface with web API services.
 
 Please report any issues to weleoka at github.
 """
+
+#-> What are the directories in sys.path and where to put packages?
+#-> Job.mergedicts should be able to omit certain keys in incoming dict.
+#   The raven job does not need to know the underlying service parameters.
+
+#-> Make system users (user1) parameters global to save on db reads.
+
+#-> User and Job could be the same class. Class DBItem perhaps?
 
 import sys, os
 import logging as logger
 import pprint
 
 # Development. Production should have the dependancies installed.
-sys.path.insert(0, '/home/sikkaflex/wrkspc/raven/vendor')
-#sys.path.insert(0, os.path.join(sys.path[0], 'vendor'))
+sys.path.insert(0, '/home/sikkaflex/wrkspc/raven/vendor') # absolute
+#sys.path.insert(0, os.path.join(sys.path[0], 'vendor')) # relative
 print(sys.path)
 
 import ravencore.main.config as raven_conf
 from ravencore.utils.exceptions import *
 import ravencore.utils.logging
 
+from ravencore.utils.helpers import get_object_attrs
 
 from ravencore.main.queue import Queue
-from ravencore.main.job import Job
+from ravencore.main.job import Job_router, Job
 
 from ravencore.coms.gmail import Gmail_in
 from ravencore.coms.gmail import Gmail_out
@@ -34,13 +43,16 @@ from ravencore.coms.gmail import Gmail_out
 from ravencore.user.user import User
 from ravencore.user.request import Request
 
+
 ravencore.utils.logging.initialiseLogging()
 
-from pytz import utc
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
-from apscheduler.executors.pool import ProcessPoolExecutor
+def test_autogrib():
+    raven_job = Request('user2', 'service1')
+    
+    mail_out = Gmail_out()#.connect()
+    mail_out.new_mail(raven_job.raven_job_dict['mail'])
+    mail_out.close()
 
 
 def main():
@@ -55,72 +67,72 @@ def main():
     returns:
         boolean:
     """
-    name = 'RAVENMAIN'
-    my_logger = ravencore.utils.ravencore.utils.logging.getLogger(name) # Make a logger for this class.
-    my_logger.info("Raven v%s" % (raven_conf.basic['version']))
-    
-    #test_user_query()
-    #test_send_mail_saildocs(query)
-    # position = test_dolink()
-    #test_autogrib()
-    import time
-    time.sleep(10)
-    #test_HTTP_headers()
-    #test_recieve_mail()
-    #test_send_mail()
+    name = 'RAVEN_COM'
+    my_logger = ravencore.utils.logging.getLogger() # Make a logger for this class.
+    my_logger.info("Raven_com v%s" % (raven_conf.basic['version']))
 
-
-def test_autogrib():
     queue = Queue()
-    current_user = User('user2')
-    service_request = Request(current_user, 'service1')
-    job = Job(service_request)
+    parameters = {}
 
-    queue.add_to_request_queue(job)
+    jobs = Job()
 
-    mail_out = Gmail_out()#.connect()
-    mail_out.new_mail(job.job['mail'])
-    mail_out.close()
-
-
-def test_send_mail(my_mail):
-    mail_out = Gmail_out()#.connect()
-    mail_out.test_mail()
-    mail_out.close()
+    for job in jobs:
+        pass
+        #print(get_object_attrs(user))
+        #print(getattr(user, 'parameters', 'Shit'))
 
 
-def test_recieve_mail():
-    prefetch = False
-    mail_in = Gmail_in().connect()
-    all_messages = mail_in.all(prefetch=prefetch)
-
-    if prefetch:
-        for mail in all_messages:
-            print(mail.header.decode(encoding='UTF-8',errors='strict'))
-            print(mail.body.decode(encoding='UTF-8',errors='strict'))
-     
-            for attachment in mail.attachments:
-                print('Saving attachment: %s' % (attachment.name))
-                print('Size: %s KB' % (attachment.size))
-                attachment.save('attachments/%s' % (attachment.name))
-
-    else:
+    # queue.add_cron_job(test_autogrib, *parameters) # Autogrib
+    # queue.add_interval_job(recieve_mail, id='mail_recieve', minutes=raven_conf.mail_recieve_interval, *parameters) # Raven recieve mail.
+    # queue.add_interval_job(send_mail, id='mail_send', minutes=raven_conf.mail_send_interval, *parameters)
     
-        for mail in all_messages:
-            print("MAIL: %s" % (mail))
+    #queue.add_instant_job(recieve_mail)
+    queue.add_instant_job(autogrib)
 
-    return all_messages
+    #queue.print_jobs()
+    queue.start()
 
 
-def test_identify_mail():
-    pass
+def autogrib():
+    raven_request_instance = Request('user2', 'service1') # Manual selection.
+
+    job_params = raven_request_instance.raven_job_params
+    #print(job_params)
+
+    new_job = Job(job_params)
+
+    import pprint        
+    #pprint.pprint(new_job.parameters)
+    #print(new_job.parameters)
+
+
+
+
+def send_mail():
+    mail_out = Gmail_out()
+    mail_out.send_all() # Send all unsent mail in maildb.
+    mail_out.close()
+
+
+def recieve_mail():
+    mail_in = Gmail_in()
+    mail_in.connect()
+    #mail_in.store_to_db_raw()
+    new_mail = mail_in.inbox(prefetch=True)
+
+
+    for mail in new_mail:
+        pprint.pprint(get_object_attrs(mail))
+        print("\n\n")
+
+    jobs = [Job_router(mail) for mail in new_mail] #-> Job class has to build new jobs.
 
 
 if __name__ == "__main__":
 
     try:
         main()
-        
+
 
     except KeyboardInterrupt:
         logger.info("Raven halted by keyboard interrupt.")
