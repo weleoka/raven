@@ -8,15 +8,6 @@ Version specified in README, CHANGELOG, commit tag and raven_config.py
 
 
 
-### Requirements
-Python v3
-
-gmail_sender
-gmail_reciever
-latlon
-ravencore
-raveneye
-
 
 ### Overview
 
@@ -26,19 +17,61 @@ raveneye
 
 ### Installation
 1. Git clone or download archive and extract.
-2. Make raven.py executable
-3. Run with shell "./raven.py" in a terminal.
 
+2.
+
+	$ make install
+
+
+3. Run with a shell.
+
+	$ raven_com
+
+
+
+### Requirements:
+
+Raven_com depends on many other packages and software.
+
+And of course runs on Python 3.5
+
+
+#### Python packages
+git@github.com:weleoka/gmail_sender
+git@github.com:weleoka/gmail_reciever
+git@github.com:weleoka/latlon
+ -> pyproj for some operations.
+#git@github.com:weleoka/ravencore
+https://weleoka@bitbucket.org/weleoka/ravencore.git
+git@github.com:weleoka/raveneye
+
+sudo apt-get install python3-pip
+sudo pip3 install setuptools
+sudo pip3 install redis
+sudo pip3 install apscheduler
+
+
+#### Redis database
+Debian PPA makes the Redis systemd service and is easier than wget for setting up redis as a service:
+sudo add-apt-repository ppa:chris-lea/redis-server
+sudo apt-get update
+sudo apt-get install redis-server
+#sudo apt-get install redis-tools # This is done by default with this PPA.
+
+$ wget http://download.redis.io/releases/redis-3.2.6.tar.gz
+$ tar xzf redis-3.2.6.tar.gz
+$ cd redis-3.2.6
+$ make
 
 
 ### Usage
 
+Raven_com writes to syslog.
 
 
 ### Current Features:
-General functinality:
 
-Specs and options:
+The service front end to run Raven_com. The goodies are in ravencore, raveneye etc.
 
 
 
@@ -47,14 +80,8 @@ Specs and options:
 Please report an issue if one is found.
 
 Functionality:
-
-
 Specs and options:
-
-
 Security:
-
-
 Code, style and performance:
 
 
@@ -82,9 +109,10 @@ The best way to get your changes merged is as follows:
 
 ### Licence
 
-GNU GENERAL PUBLIC LICENSE
+GNU GENERAL PUBLIC LICENSE, Version 3
 
-LICENCE for details.
+
+LICENSE for details.
 
 Copyright (c) 2017 A.K. Weeks
 

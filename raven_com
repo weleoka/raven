@@ -2,22 +2,40 @@
 # Copyright (c) 2017 Kai Weeks.
 # See LICENSE for details.
 """
-Main app to connect an email snd/rcv functionality and fish instructions out of messages.
+Main app to make Raven_com a service.
 
-These messages act as commands for Raven.
-
-Raven presents an Email API to interface with web API services.
+Raven_com presents an email API to interface with web API services and users.
 
 Please report any issues to weleoka at github.
 """
 
 #-> What are the directories in sys.path and where to put packages?
-#-> Job.mergedicts should be able to omit certain keys in incoming dict.
+
+#-> Job.mergedicts should be able to omit certain keys in incoming dict which are trivial.
 #   The raven job does not need to know the underlying service parameters.
 
 #-> Make system users (user1) parameters global to save on db reads.
 
-#-> User and Job could be the same class. Class DBItem perhaps?
+#-> Handled mail has to be marked /seen.
+
+#.> Job to Queue.
+
+#-> Forward an email with attachment without downloading attachment.
+
+#-> How to install python3
+
+#-> Litemail identification in Mail_router assumes all to be for user2.
+
+#-> Job_router. Newsletter. Find the raven_user_service_id.
+
+
+
+# LAST
+#-> Saving mail to db does not check for duplicate mail! UID check.
+#-> An email always becomes a Job(). Once the Job_router has done it's work
+# and a new request has been built the Job() has to be updated.
+
+#-> Send email from a list of email ids.
 
 import sys, os
 import logging as logger
@@ -35,24 +53,34 @@ import ravencore.utils.logging
 from ravencore.utils.helpers import get_object_attrs
 
 from ravencore.main.queue import Queue
-from ravencore.main.job import Job_router, Job
+from ravencore.main.job import Job
 
 from ravencore.coms.gmail import Gmail_in
 from ravencore.coms.gmail import Gmail_out
+from ravencore.coms.router import Mail_router
+from ravencore.coms.router import Job_router
+from ravencore.coms.mail import Mail, Mail_out
 
 from ravencore.user.user import User
 from ravencore.user.request import Request
 
 
+# Set up the logging of raven_com.
 ravencore.utils.logging.initialiseLogging()
+
 
 
 def test_autogrib():
     raven_job = Request('user2', 'service1')
-    
+
     mail_out = Gmail_out()#.connect()
     mail_out.new_mail(raven_job.raven_job_dict['mail'])
     mail_out.close()
+
+
+def look_for_work():
+    """ Walk the users list and look for timeouts etc."""
+
 
 
 def main():
@@ -74,34 +102,33 @@ def main():
     queue = Queue()
     parameters = {}
 
-    jobs = Job()
-
-    for job in jobs:
-        pass
-        #print(get_object_attrs(user))
-        #print(getattr(user, 'parameters', 'Shit'))
-
-
     # queue.add_cron_job(test_autogrib, *parameters) # Autogrib
     # queue.add_interval_job(recieve_mail, id='mail_recieve', minutes=raven_conf.mail_recieve_interval, *parameters) # Raven recieve mail.
     # queue.add_interval_job(send_mail, id='mail_send', minutes=raven_conf.mail_send_interval, *parameters)
-    
+
     #queue.add_instant_job(recieve_mail)
-    queue.add_instant_job(autogrib)
+    #queue.add_instant_job(autogrib)
 
     #queue.print_jobs()
-    queue.start()
+    #queue.start()
 
+    #mail_list = Mail_router.retrieve_mail_from_db()
+
+
+
+    
 
 def autogrib():
+    #-> This is not very good. The same problem as in Mail_router().
+    # Its not good because the Request object should be able to be passed
+    # directly to job without any hastles like getting at attributes etc.
     raven_request_instance = Request('user2', 'service1') # Manual selection.
-
     job_params = raven_request_instance.raven_job_params
-    #print(job_params)
-
     new_job = Job(job_params)
 
-    import pprint        
+
+    #-> implement queue(new_job)
+    import pprint
     #pprint.pprint(new_job.parameters)
     #print(new_job.parameters)
 
@@ -116,16 +143,35 @@ def send_mail():
 
 def recieve_mail():
     mail_in = Gmail_in()
+    router = Mail_router()
     mail_in.connect()
-    #mail_in.store_to_db_raw()
+
     new_mail = mail_in.inbox(prefetch=True)
+    router(new_mail)
 
 
-    for mail in new_mail:
-        pprint.pprint(get_object_attrs(mail))
-        print("\n\n")
 
-    jobs = [Job_router(mail) for mail in new_mail] #-> Job class has to build new jobs.
+def output_db():
+    """ development use """
+    print("--1--")
+    mail_in_list = Mail()
+    for mail in mail_in_list:
+        print("Found mail.")
+
+    print("--2--")
+    mail_out_list = Mail_out()
+    for mail_out in mail_out_list:
+        print("Found mail out.")
+    
+    print("--3--")
+    users = User()
+    for user in users:
+        print("Found user.")
+
+    print("--4--")
+    jobs = Job()
+    for job in jobs:
+        print("Found job.")
 
 
 if __name__ == "__main__":
