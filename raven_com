@@ -9,33 +9,12 @@ Raven_com presents an email API to interface with web API services and users.
 Please report any issues to weleoka at github.
 """
 
-#-> What are the directories in sys.path and where to put packages?
-
-#-> Job.mergedicts should be able to omit certain keys in incoming dict which are trivial.
-#   The raven job does not need to know the underlying service parameters.
-
-#-> Make system users (user1) parameters global to save on db reads.
-
-#-> Handled mail has to be marked /seen.
-
-#.> Job to Queue.
-
-#-> Forward an email with attachment without downloading attachment.
-
-#-> How to install python3
-
-#-> Litemail identification in Mail_router assumes all to be for user2.
-
-#-> Job_router. Newsletter. Find the raven_user_service_id.
-
-
 
 # LAST
-#-> Saving mail to db does not check for duplicate mail! UID check.
-#-> An email always becomes a Job(). Once the Job_router has done it's work
-# and a new request has been built the Job() has to be updated.
+#-> socket.gaierror hard to catch on gmail_out.connect() if no network.
+#   The log gets stuffed if we don't catch it.
 
-#-> Send email from a list of email ids.
+#-> Is gmail_reciever a PIP3 installable package? Important for Makefile.
 
 import sys, os
 import logging as logger
@@ -44,7 +23,6 @@ import pprint
 # Development. Production should have the dependancies installed.
 sys.path.insert(0, '/home/sikkaflex/wrkspc/raven/vendor') # absolute
 #sys.path.insert(0, os.path.join(sys.path[0], 'vendor')) # relative
-print(sys.path)
 
 import ravencore.main.config as raven_conf
 from ravencore.utils.exceptions import *
@@ -69,20 +47,6 @@ from ravencore.user.request import Request
 ravencore.utils.logging.initialiseLogging()
 
 
-
-def test_autogrib():
-    raven_job = Request('user2', 'service1')
-
-    mail_out = Gmail_out()#.connect()
-    mail_out.new_mail(raven_job.raven_job_dict['mail'])
-    mail_out.close()
-
-
-def look_for_work():
-    """ Walk the users list and look for timeouts etc."""
-
-
-
 def main():
     """
     Raven's main function
@@ -98,42 +62,44 @@ def main():
     name = 'RAVEN_COM'
     my_logger = ravencore.utils.logging.getLogger() # Make a logger for this class.
     my_logger.info("Raven_com v%s" % (raven_conf.basic['version']))
+    my_logger.debug("SYS.PATH: %s" % (sys.path))
+
+    
 
     queue = Queue()
-    parameters = {}
 
-    # queue.add_cron_job(test_autogrib, *parameters) # Autogrib
-    # queue.add_interval_job(recieve_mail, id='mail_recieve', minutes=raven_conf.mail_recieve_interval, *parameters) # Raven recieve mail.
-    # queue.add_interval_job(send_mail, id='mail_send', minutes=raven_conf.mail_send_interval, *parameters)
+    ### Here we add 4 important jobs (core functions) to the queue.
+
+    ## 1. recieve mail task.
+    queue.add_interval_job(recieve_mail, id='mail_recieve', minutes=raven_conf.mail_recieve_interval) # Raven recieve mail.
+    
+    ## 2. send mail task.
+    #queue.add_interval_job(send_mail, id='mail_send', minutes=raven_conf.mail_send_interval)
+
+    ## 3. process jobs task.
+    queue.add_interval_job(do_work, id='do_work', seconds=raven_conf.raven_do_work_interval)
+
+    ## 4. look for new work task.
+    #queue.add_interval_job(look_for_work, id='look_for_work', seconds=raven_conf.raven_do_work_interval)
+
+    ###
+
+
+    ## Some manual stuff for development.
+    # queue.add_cron_job(test_autogrib, id='autogrib', timezone=utc, replace_existing=True, hour=17, minute=30)
+    
 
     #queue.add_instant_job(recieve_mail)
     #queue.add_instant_job(autogrib)
 
-    #queue.print_jobs()
-    #queue.start()
-
-    #mail_list = Mail_router.retrieve_mail_from_db()
-
-
-
-    
-
-def autogrib():
-    #-> This is not very good. The same problem as in Mail_router().
-    # Its not good because the Request object should be able to be passed
-    # directly to job without any hastles like getting at attributes etc.
-    raven_request_instance = Request('user2', 'service1') # Manual selection.
-    job_params = raven_request_instance.raven_job_params
-    new_job = Job(job_params)
-
-
-    #-> implement queue(new_job)
-    import pprint
-    #pprint.pprint(new_job.parameters)
-    #print(new_job.parameters)
+    queue.sched.print_jobs()
+    #queue.sched.remove_job('do_work')
+    queue.start()
 
 
 
+
+### Core functions to run as a service. This is it.
 
 def send_mail():
     mail_out = Gmail_out()
@@ -143,16 +109,50 @@ def send_mail():
 
 def recieve_mail():
     mail_in = Gmail_in()
-    router = Mail_router()
-    mail_in.connect()
 
-    new_mail = mail_in.inbox(prefetch=True)
-    router(new_mail)
+    mail_in.connect()
+    new_mail = mail_in.inbox(prefetch=True, unread=True, mark_as_read=True)
+    mail_in.close()
+
+    Mail_router(new_mail) # New mail goes to the router which will identify it.
+
+
+def do_work():
+    jobs = Job()
+    completed_jobs = jobs.done()
+
+    for job in jobs:
+        if job.id not in completed_jobs:
+            Job_router(job) # The job router instantiate the right service with job params.
+
+
+def look_for_work():
+    """ Walk the users list and look for timeouts on services etc."""
+    pass # Who want's to work!
+
+
+
+
+### Development stuff here.
+
+def test_autogrib():
+    #-> This is not very good. The same problem as in Mail_router().
+    # It's not good because the Request object should be able to be passed
+    # directly to job without any hastles like getting at attributes etc.
+    raven_request_instance = Request('user2', 'service1') # Manual selection.
+    job_params = raven_request_instance.raven_job_params
+    new_job = Job(job_params)
+
 
 
 
 def output_db():
     """ development use """
+    #-> Here we will see the problem of the current dbitem iterator.
+    #   If a none type is come accross all following dbitems will be missed.
+    #   Also the auto-incrementing of dbitems will grab on to the fact that
+    #   the iterator threw a StopIteration exception.
+
     print("--1--")
     mail_in_list = Mail()
     for mail in mail_in_list:
@@ -172,6 +172,15 @@ def output_db():
     jobs = Job()
     for job in jobs:
         print("Found job.")
+
+
+def test_autogrib():
+    """ development use"""
+    raven_job = Request('user2', 'service1')
+
+    mail_out = Gmail_out()#.connect()
+    mail_out.new_mail(raven_job.raven_job_dict['mail'])
+    mail_out.close()
 
 
 if __name__ == "__main__":

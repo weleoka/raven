@@ -13,6 +13,10 @@ CONFIGFILE = raven_com.conf
 LOADERDIR = /etc/systemd/system
 LOADERCONFIG = raven_com.service
 
+
+# Dependencies, python3 packages location, or maybe /usr/lib/python3/dist-packages
+PYDEPENDENCIES = /usr/local/lib/python3.5/dist-packages
+
 # LOGGING
 
 
@@ -55,15 +59,27 @@ install:	$(PROGRAM)
 		#@mkdir -p /var/log/raven_com;
 		#@touch /var/log/raven_com/new_log;
 
-		raven_com; # Start the program after make install build finished.
-		# @systemctl start raven_com; # Start as service.
+		#raven_com; # Start the program after make install build finished.
+		@systemctl start raven_com; # Start as service.
 
+cpdeps:
+		cp -R vendor/gmail_sender $(PYDEPENDENCIES);
+		cp -R vendor/gmail_reciever $(PYDEPENDENCIES);
+		cp -R vendor/latlon $(PYDEPENDENCIES);
+		cp -R vendor/ravencore $(PYDEPENDENCIES);
+		cp -R vendor/raveneye $(PYDEPENDENCIES);
+		cp -R vendor/pyproj $(PYDEPENDENCIES);
 uninstall:
-		# @systemctl stop raven_com; # Stop the service if running.
+		@systemctl stop raven_com; # Stop the service if running.
 		rm $(INSTDIR)/$(PROGRAM);
 		rm $(LOADERDIR)/$(LOADERCONFIG);
 		rm $(CONFIGDIR)/$(CONFIGFILE);
-
+		-rm -R $(PYDEPENDENCIES)/gmail_sender;
+		-rm -R $(PYDEPENDENCIES)/gmail_reciever;
+		-rm -R $(PYDEPENDENCIES)/gmail_latlon;
+		-rm -R $(PYDEPENDENCIES)/gmail_ravencore;
+		-rm -R $(PYDEPENDENCIES)/gmail_raveneye;
+		-rm -R $(PYDEPENDENCIES)/pyproj;
 
 wrapup:
 	tar -cvzf $(PROGRAM).tar.gz *;

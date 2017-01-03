@@ -2,7 +2,7 @@
 Description=Raven communications.
 After=network.target
 #After=syslog.target
-#Wants=network.target
+Wants=network.target
 
 
 [Service]

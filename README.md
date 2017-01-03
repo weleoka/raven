@@ -1,8 +1,11 @@
 
 Raven communications solutions.
 
+
+
 ### raven versions
-(v0.0.1) Current development version.
+
+v0.1beta Current development version.
 
 Version specified in README, CHANGELOG, commit tag and raven_config.py
 
@@ -11,45 +14,116 @@ Version specified in README, CHANGELOG, commit tag and raven_config.py
 
 ### Overview
 
+
+
+#### DO LIST
+
+Anywhere in the code where the job tag (#->) is found =)
+
+
+Here are some of the low-priority jobs. These will mostly be found in ravencore modules,
+but this is a useful overview for jobs that affect the raven_com service.
+
 #-> Data structure serialisation uses json.decode json.loads. This is slow.
+#-> Job.merge_dicts should be able to omit certain dict keys which are trivial.
+#   The raven job does not need to know the underlying service parameters.
+#-> Make system users (user1) parameters global to save on db reads.
+#-> Forward an email with attachment without downloading attachment.
+#-> Job_router. Newsletter. Find the raven_user_service_id.
+#-> Litemail identification in Mail_router assumes all to be for user2.
+#-> Newsletter Mail_out() objects should be a different dbitem. so that the system
+#   does not accidentally send a load of blog mail.
+#-> The Job_router() and Mail_router() in ravencore/coms/router.py both have
+#   alot of logic in __init__(). The usage is flawed and should be moved out to methods.
+
+
+
 
 
 
 ### Installation
+Make sure all the requirements are satisfied. See requirements header below. Here there is further talk of installing for production or development environments. We begin:
+
+The sys.path can be appended with a relative or absolute path to the "vendor" folder.
+This is currently done in ./raven_com but is really only for development purposes.
+
+However, if raven_com is run as a service (systemd/ init.d or other) then the home folder 
+will not necessarily have been mounted. The safer way is to install the dependencies in 
+
+/usr/local/lib/python3.5/dist-packages or /usr/lib/python3/dist-packages
+
+First of all the dependencies which can't be installed with a standard installer are best fetched by cloning the relevant repositories. Easy is simply go to the raven/vendor folder and clone the whole bunch of dependencies into there. The ./raven_com executable has some commented lines which will append a relative or absolute path to python's sys.path (where it looks for packages) - like this it's just to get cracking on the development. 
+
+The cloned repositories in raven/vendor can be manually copied to 
+
+	/usr/local/lib/python3.5/dist-packages or /usr/lib/python3/dist-packages
+
+Alternatively 
+	
+	$ make cpdeps
+
+Should run through and copy the relevant repositories to the above paths.! Not super neat but easy.
+
+
+To summarise:
+
 1. Git clone or download archive and extract.
 
-2.
+3. Go to vendor folder and git clone the dependencies listed under the requirements header.
+
+2. Look in the Makefile for details.
 
 	$ make install
+	$ make cpdeps
 
 
-3. Run with a shell.
+3. Run with a shell, or if set in makefile it will be a system service.
 
 	$ raven_com
+	$ systemctl status raven_com
 
+4. Monitor log files if running as a system service:
+
+systemd journal is now the standard logging device for most distros.
+
+	$ journalctl -e -u raven_com
+
+(-u selects raven_com unit. -e Jumps to the end.)
 
 
 ### Requirements:
 
-Raven_com depends on many other packages and software.
+Raven_com depends on some other software.
 
-And of course runs on Python 3.5
+It does require Python 3.5 for example. 
+
+Some requirements are easily satisfied with a package manager like pip and apt-get. Unfortunately not all the dependencies can. Some require manual downloading and installing. See below for further details.
 
 
-#### Python packages
+
+
+#### Python packages as repos
+These packages are needed but do not have installers.
+They will manually have to be installed to the correct dependency directory.
+
 git@github.com:weleoka/gmail_sender
 git@github.com:weleoka/gmail_reciever
-git@github.com:weleoka/latlon
- -> pyproj for some operations.
-#git@github.com:weleoka/ravencore
 https://weleoka@bitbucket.org/weleoka/ravencore.git
 git@github.com:weleoka/raveneye
 
-sudo apt-get install python3-pip
+git@github.com:weleoka/latlon 
+
+latlon uses pyproj (python projection) for some functions.
+(sudo pip3 install pyproj) However currently pyproj is not installing,
+clone from https://github.com/jswhit/pyproj
+
+
+#### Python packages on PIP3
+These are well maintained and install without troubles:
+sudo apt-get install python3-pip (if you don't have it already)
 sudo pip3 install setuptools
 sudo pip3 install redis
 sudo pip3 install apscheduler
-
 
 #### Redis database
 Debian PPA makes the Redis systemd service and is easier than wget for setting up redis as a service:
@@ -58,20 +132,33 @@ sudo apt-get update
 sudo apt-get install redis-server
 #sudo apt-get install redis-tools # This is done by default with this PPA.
 
+If you still prefer to wget and manually write a redis-server.service file then:
 $ wget http://download.redis.io/releases/redis-3.2.6.tar.gz
 $ tar xzf redis-3.2.6.tar.gz
 $ cd redis-3.2.6
 $ make
 
 
+
 ### Usage
 
-Raven_com writes to syslog.
+Start up and hope syslog isn't flooded with problems!
+
+The service can be stopped and restarted and jobs will not be lost, or doubled up.
+
+To modify the log output change debug flags and basic_log settings in ravencore.main.config
+
+Some modules are 'noisy' and can have custom loging levels set.
+
+Be carful with the resetdb parameter in config! =)
+
+
+
 
 
 ### Current Features:
 
-The service front end to run Raven_com. The goodies are in ravencore, raveneye etc.
+This is the service front end to raven_com. The goodies are in ravencore, raveneye etc.
 
 
 
@@ -107,6 +194,7 @@ The best way to get your changes merged is as follows:
 
 
 
+
 ### Licence
 
 GNU GENERAL PUBLIC LICENSE, Version 3
@@ -115,6 +203,7 @@ GNU GENERAL PUBLIC LICENSE, Version 3
 LICENSE for details.
 
 Copyright (c) 2017 A.K. Weeks
+
 
 
 
