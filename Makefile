@@ -53,7 +53,7 @@ install:	$(PROGRAM)
 
 		@echo "Reloading systemd.";
 		@systemctl daemon-reload;
-#systemctl enable raven_com # Set this to start raven_com on boot.
+		systemctl enable raven_com # Set this to start raven_com on boot.
 
 		#@echo "Creating logfile.";
 		#@mkdir -p /var/log/raven_com;
@@ -69,6 +69,7 @@ cpdeps:
 		cp -R vendor/ravencore $(PYDEPENDENCIES);
 		cp -R vendor/raveneye $(PYDEPENDENCIES);
 		cp -R vendor/pyproj $(PYDEPENDENCIES);
+
 uninstall:
 		@systemctl stop raven_com; # Stop the service if running.
 		rm $(INSTDIR)/$(PROGRAM);

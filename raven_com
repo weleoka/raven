@@ -101,6 +101,7 @@ def main():
 
 def send_mail():
     mail_out = Gmail_out()
+    mail_out.connect()
     mail_out.send_all() # Send all unsent mail in maildb.
     mail_out.close()
 
