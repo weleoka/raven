@@ -38,11 +38,11 @@ First of all the dependencies which can't be installed with a standard installer
 
 The cloned repositories in raven/vendor can be manually copied to 
 
-	/usr/local/lib/python3.5/dist-packages or /usr/lib/python3/dist-packages
+    /usr/local/lib/python3.5/dist-packages or /usr/lib/python3/dist-packages
 
 Alternatively 
-	
-	$ make cpdeps
+    
+    $ make cpdeps
 
 Should run through and copy the relevant repositories to the above paths.! Not super neat but easy.
 
@@ -55,20 +55,20 @@ To summarise:
 
 2. Look in the Makefile for details.
 
-	$ make install
-	$ make cpdeps
+    $ make install
+    $ make cpdeps
 
 
 3. Run with a shell, or if set in makefile it will be a system service.
 
-	$ raven_com
-	$ systemctl status raven_com
+    $ raven_com
+    $ systemctl status raven_com
 
 4. Monitor log files if running as a system service:
 
 systemd journal is now the standard logging device for most distros.
 
-	$ journalctl -e -u raven_com
+    $ journalctl -e -u raven_com
 
 (-u selects raven_com unit. -e Jumps to the end.)
 
@@ -89,13 +89,13 @@ These packages are needed but do not have installers.
 
 They will manually have to be installed to the correct dependency directory (raven/vendor).
 
-´´´
-git clone https://github.com/weleoka/raven.git
-git clone https://github.com/weleoka/raveneye.git
-git clone https://github.com/weleoka/gmail_sender.git
-git clone https://github.com/weleoka/gmail_reciever.git
-git clone https://github.com/weleoka/latlon.git
-´´´
+
+    git clone https://github.com/weleoka/raven.git
+    git clone https://github.com/weleoka/raveneye.git
+    git clone https://github.com/weleoka/gmail_sender.git
+    git clone https://github.com/weleoka/gmail_reciever.git
+    git clone https://github.com/weleoka/latlon.git
+
 
 git clone https://github.com/weleoka/ravencore.git # Private repo moved to bitbucket
 
