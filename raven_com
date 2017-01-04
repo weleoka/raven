@@ -62,7 +62,7 @@ def main():
     name = 'RAVEN_COM'
     my_logger = ravencore.utils.logging.getLogger() # Make a logger for this class.
     my_logger.info("Raven_com v%s" % (raven_conf.basic['version']))
-    my_logger.debug("SYS.PATH: %s" % (sys.path))
+    my_logger.info("SYS.PATH: %s" % (sys.path))
 
     queue = Queue()
 
