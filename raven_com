@@ -21,8 +21,8 @@ import logging as logger
 import pprint
 
 # Development. Production should have the dependancies installed.
-sys.path.insert(0, '/home/sikkaflex/wrkspc/raven/vendor') # absolute
-#sys.path.insert(0, os.path.join(sys.path[0], 'vendor')) # relative
+#sys.path.insert(0, '/home/sikkaflex/wrkspc/raven/vendor') # absolute
+sys.path.insert(0, os.path.join(sys.path[0], 'vendor')) # relative
 
 import ravencore.main.config as raven_conf
 from ravencore.utils.exceptions import *

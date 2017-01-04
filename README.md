@@ -91,24 +91,36 @@ They will manually have to be installed to the correct dependency directory (rav
 
 
     git clone https://github.com/weleoka/raven.git
+    cd raven
+    mkdir vendor
+    cd vendor
     git clone https://github.com/weleoka/raveneye.git
     git clone https://github.com/weleoka/gmail_sender.git
     git clone https://github.com/weleoka/gmail_reciever.git
     git clone https://github.com/weleoka/latlon.git
     git clone https://github.com/weleoka/ravencore.git # Private repo moved to bitbucket
+    git clone https://github.com/weleoka/apscheduler.git # See note under PIP3 header.
 
     # latlon uses pyproj (python projection) for some functions.
-    # (sudo pip3 install pyproj) However currently pyproj is not installing,
+    # (sudo pip3 install pyproj) However sometimes pyproj is not installing, then:
     
     git clone from https://github.com/jswhit/pyproj
 
 
-#### Python packages on PIP3
+#### PIP3 and Python packages
 These are well maintained and install without troubles:
     $ apt-get install python3-pip (if you don't have it already)
+    $ export LC_ALL="en_US.UTF-8" (some vps don't have it set)
+    $ export LC_CTYPE="en_US.UTF-8"
     $ pip3 install setuptools
     $ pip3 install redis
     $ pip3 install apscheduler
+    $ pip3 install lxml
+
+
+Apscheduler issues on virtualenv's due to setuptools. To circumvent it can be easier to clone repo to vendor folder.
+
+
 
 #### Redis database
 Debian PPA makes the Redis systemd service and is easier than wget for setting up redis as a service:
@@ -122,7 +134,6 @@ If you still prefer to wget and manually write a redis-server.service file then:
     $ tar xzf redis-3.2.6.tar.gz
     $ cd redis-3.2.6
     $ make
-
 
 
 ### Usage

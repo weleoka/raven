@@ -69,6 +69,7 @@ cpdeps:
 		cp -R vendor/ravencore $(PYDEPENDENCIES);
 		cp -R vendor/raveneye $(PYDEPENDENCIES);
 		cp -R vendor/pyproj $(PYDEPENDENCIES);
+		cp -R vendor/apscheduler $(PYDEPENDENCIES);
 
 uninstall:
 		@systemctl stop raven_com; # Stop the service if running.
