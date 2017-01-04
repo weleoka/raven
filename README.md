@@ -95,34 +95,33 @@ They will manually have to be installed to the correct dependency directory (rav
     git clone https://github.com/weleoka/gmail_sender.git
     git clone https://github.com/weleoka/gmail_reciever.git
     git clone https://github.com/weleoka/latlon.git
+    git clone https://github.com/weleoka/ravencore.git # Private repo moved to bitbucket
 
-
-git clone https://github.com/weleoka/ravencore.git # Private repo moved to bitbucket
-
-latlon uses pyproj (python projection) for some functions.
-(sudo pip3 install pyproj) However currently pyproj is not installing,
-clone from https://github.com/jswhit/pyproj
+    # latlon uses pyproj (python projection) for some functions.
+    # (sudo pip3 install pyproj) However currently pyproj is not installing,
+    
+    git clone from https://github.com/jswhit/pyproj
 
 
 #### Python packages on PIP3
 These are well maintained and install without troubles:
-sudo apt-get install python3-pip (if you don't have it already)
-sudo pip3 install setuptools
-sudo pip3 install redis
-sudo pip3 install apscheduler
+    $ apt-get install python3-pip (if you don't have it already)
+    $ pip3 install setuptools
+    $ pip3 install redis
+    $ pip3 install apscheduler
 
 #### Redis database
 Debian PPA makes the Redis systemd service and is easier than wget for setting up redis as a service:
-sudo add-apt-repository ppa:chris-lea/redis-server
-sudo apt-get update
-sudo apt-get install redis-server
-#sudo apt-get install redis-tools # This is done by default with this PPA.
+    $ add-apt-repository ppa:chris-lea/redis-server
+    $ apt-get update
+    $ apt-get install redis-server
+    #apt-get install redis-tools # This is done by default with this PPA.
 
 If you still prefer to wget and manually write a redis-server.service file then:
-$ wget http://download.redis.io/releases/redis-3.2.6.tar.gz
-$ tar xzf redis-3.2.6.tar.gz
-$ cd redis-3.2.6
-$ make
+    $ wget http://download.redis.io/releases/redis-3.2.6.tar.gz
+    $ tar xzf redis-3.2.6.tar.gz
+    $ cd redis-3.2.6
+    $ make
 
 
 
