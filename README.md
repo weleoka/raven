@@ -14,27 +14,9 @@ Version specified in README, CHANGELOG, commit tag and raven_config.py
 
 ### Overview
 
+This is the front end for ravencore where all the guts of the application are. ravencore is currently a private repo.
 
-
-#### DO LIST
-
-Anywhere in the code where the job tag (#->) is found =)
-
-
-Here are some of the low-priority jobs. These will mostly be found in ravencore modules,
-but this is a useful overview for jobs that affect the raven_com service.
-
-#-> Data structure serialisation uses json.decode json.loads. This is slow.
-#-> Job.merge_dicts should be able to omit certain dict keys which are trivial.
-#   The raven job does not need to know the underlying service parameters.
-#-> Make system users (user1) parameters global to save on db reads.
-#-> Forward an email with attachment without downloading attachment.
-#-> Job_router. Newsletter. Find the raven_user_service_id.
-#-> Litemail identification in Mail_router assumes all to be for user2.
-#-> Newsletter Mail_out() objects should be a different dbitem. so that the system
-#   does not accidentally send a load of blog mail.
-#-> The Job_router() and Mail_router() in ravencore/coms/router.py both have
-#   alot of logic in __init__(). The usage is flawed and should be moved out to methods.
+What whe have here are general information concerning Raven_com and its functinality.
 
 
 
@@ -104,14 +86,18 @@ Some requirements are easily satisfied with a package manager like pip and apt-g
 
 #### Python packages as repos
 These packages are needed but do not have installers.
-They will manually have to be installed to the correct dependency directory.
 
-git@github.com:weleoka/gmail_sender
-git@github.com:weleoka/gmail_reciever
-https://weleoka@bitbucket.org/weleoka/ravencore.git
-git@github.com:weleoka/raveneye
+They will manually have to be installed to the correct dependency directory (raven/vendor).
 
-git@github.com:weleoka/latlon 
+´´´
+git clone https://github.com/weleoka/raven.git
+git clone https://github.com/weleoka/raveneye.git
+git clone https://github.com/weleoka/gmail_sender.git
+git clone https://github.com/weleoka/gmail_reciever.git
+git clone https://github.com/weleoka/latlon.git
+´´´
+
+git clone https://github.com/weleoka/ravencore.git # Private repo moved to bitbucket
 
 latlon uses pyproj (python projection) for some functions.
 (sudo pip3 install pyproj) However currently pyproj is not installing,
@@ -170,6 +156,26 @@ Functionality:
 Specs and options:
 Security:
 Code, style and performance:
+
+
+
+#### DO LIST
+
+Anywhere in the code where the job tag (#->) is found =)
+
+
+Here are some of the low-priority jobs. These will mostly be found in ravencore modules,
+but this is a useful overview for jobs that affect the raven_com service.
+
+-> Data structure serialisation uses json.decode json.loads. This is slow.
+-> Job.merge_dicts should be able to omit certain dict keys which are trivial. The raven job does not need to know the underlying service parameters.
+-> Make system users (user1) parameters global to save on db reads.
+-> Forward an email with attachment without downloading attachment.
+-> Job_router. Newsletter. Find the raven_user_service_id.
+-> Litemail identification in Mail_router assumes all to be for user2.
+-> Newsletter Mail_out() objects should be a different dbitem. so that the system does not accidentally send a load of blog mail.
+-> The Job_router() and Mail_router() in ravencore/coms/router.py both have alot of logic in __init__(). The usage is flawed and should be moved out to methods.
+
 
 
 

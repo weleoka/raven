@@ -64,24 +64,22 @@ def main():
     my_logger.info("Raven_com v%s" % (raven_conf.basic['version']))
     my_logger.debug("SYS.PATH: %s" % (sys.path))
 
-    
-
     queue = Queue()
 
     ### Here we add 4 important jobs (core functions) to the queue.
-
-    ## 1. recieve mail task.
-    queue.add_interval_job(recieve_mail, id='mail_recieve', minutes=raven_conf.mail_recieve_interval) # Raven recieve mail.
-    
-    ## 2. send mail task.
-    #queue.add_interval_job(send_mail, id='mail_send', minutes=raven_conf.mail_send_interval)
-
-    ## 3. process jobs task.
+    #
+    # 1. recieve mail task. (ie add mail to db)
+    queue.add_interval_job(recieve_mail, id='recieve_mail', minutes=raven_conf.mail_recieve_interval) # Raven recieve mail.
+    #
+    # 2. send mail task. (ie send mail_out in db)
+    queue.add_interval_job(send_mail, id='send_mail', minutes=raven_conf.mail_send_interval)
+    #
+    # 3. do work task. (ie process jobs in db)
     queue.add_interval_job(do_work, id='do_work', seconds=raven_conf.raven_do_work_interval)
-
-    ## 4. look for new work task.
+    #
+    # 4. look for new work task. (ie add jobs to db from other sources than mail)
     #queue.add_interval_job(look_for_work, id='look_for_work', seconds=raven_conf.raven_do_work_interval)
-
+    #
     ###
 
 
@@ -90,10 +88,10 @@ def main():
     
 
     #queue.add_instant_job(recieve_mail)
-    #queue.add_instant_job(autogrib)
+    #queue.add_instant_job(send_mail)
 
     queue.sched.print_jobs()
-    #queue.sched.remove_job('do_work')
+    #queue.sched.remove_job('mail_recieve')
     queue.start()
 
 
