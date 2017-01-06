@@ -28,6 +28,11 @@ import ravencore.main.config as raven_conf
 from ravencore.utils.exceptions import *
 import ravencore.utils.logging
 
+
+# Reset the db to defaults? DANGER.
+reset_db = True
+raven_conf.reset_db = reset_db
+
 from ravencore.utils.helpers import get_object_attrs
 
 from ravencore.main.queue import Queue
