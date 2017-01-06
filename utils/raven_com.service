@@ -7,9 +7,9 @@ Wants=network.target
 
 [Service]
 Type=simple
-#User=raven
+User=raven
 #Group=raven
-WorkingDirectory=/home/raven/raven
+WorkingDirectory=~
 ExecStart=/usr/bin/python3 raven_com
 Restart=always
 StandardOutput=journal
