@@ -72,6 +72,8 @@ systemd journal is now the standard logging device for most distros.
 
 (-u selects raven_com unit. -e Jumps to the end.)
 
+NOTE: If running as a service the recieve_mail and send_mail intervals should be conservative. Too frequent polling of mail provider's servers can get the application banned. 25 minutes should be alright.
+
 
 ### Requirements:
 
@@ -118,7 +120,7 @@ These are well maintained and install without troubles:
     $ pip3 install lxml
 
 
-Apscheduler issues on virtualenv's due to setuptools. To circumvent it can be easier to clone repo to vendor folder.
+Apscheduler issues on virtualenv's due to setuptools: no sure way to circumvent it. It could be easier to clone repo to vendor folder. See more at https://github.com/pypa/setuptools/issues/523
 
 
 

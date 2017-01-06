@@ -37,7 +37,6 @@ from ravencore.coms.gmail import Gmail_in
 from ravencore.coms.gmail import Gmail_out
 from ravencore.coms.router import Mail_router
 from ravencore.coms.router import Job_router
-from ravencore.coms.mail import Mail, Mail_out
 
 from ravencore.user.user import User
 from ravencore.user.request import Request
@@ -85,7 +84,7 @@ def main():
 
     ## Some manual stuff for development.
     # queue.add_cron_job(test_autogrib, id='autogrib', timezone=utc, replace_existing=True, hour=17, minute=30)
-    
+
 
     #queue.add_instant_job(recieve_mail)
     #queue.add_instant_job(send_mail)
@@ -122,7 +121,7 @@ def do_work():
 
     for job in jobs:
         if job.id not in completed_jobs:
-            Job_router(job) # The job router instantiate the right service with job params.
+            Job_router(job) # The job router can instantiate the right service with job params.
 
 
 def look_for_work():
@@ -161,7 +160,7 @@ def output_db():
     mail_out_list = Mail_out()
     for mail_out in mail_out_list:
         print("Found mail out.")
-    
+
     print("--3--")
     users = User()
     for user in users:
