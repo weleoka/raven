@@ -2,7 +2,9 @@
 vendor/
 NOTES.md
 creds.txt
+dbdefaults.py
 retired_code.py
+example.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

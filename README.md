@@ -187,7 +187,9 @@ but this is a useful overview for jobs that affect the raven_com service.
 -> Litemail identification in Mail_router assumes all to be for user2.
 -> Newsletter Mail_out() objects should be a different dbitem. so that the system does not accidentally send a load of blog mail.
 -> The Job_router() and Mail_router() in ravencore/coms/router.py both have alot of logic in __init__(). The usage is flawed and should be moved out to methods.
-
+-> Should job[mail_prameters] be an id to mail item in db (Draft() class?) 
+    Or like now a complete dictionary of mail out parameters.
+    - Currently remaining as the complete dictionary.
 
 
 

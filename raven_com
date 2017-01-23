@@ -7,14 +7,37 @@ Main app to make Raven_com a service.
 Raven_com presents an email API to interface with web API services and users.
 
 Please report any issues to weleoka at github.
+
+#-> Gmail bloat on messages. About 1400 bytes per message!
+#-> Max subject length?
+#-> Iridium mail client for linux.
+#-> What are dict_keys and dict_items objects? From calling dict.keys() or dict.items()?
+#-> How to get something out of a class when iterating over it,
+    even if StopIteration is reached instantly.
+    Basically; how to return self and raise StopIteration at the same time?
+#-> dbitem.__iter__ raises FutureWarning.
+    /usr/lib/python3.5/re.py:203: FutureWarning: split() requires a non-empty pattern match.
+    return _compile(pattern, flags).split(string, maxsplit)
+#-> How to make a protected class only to be instantiated by child classes?
+#-> How to pass multiple return values directly to another function.
+#-> How to include a counter in a list comprehension.
+#-> object_to_dict list comprehension in utils.helpers or main.dbitem.to_dict()
+#-> Can an object be instatiated within a list comprehension?
+#-> Using eval to clear up the issue of db_tool not iterating if item_id_str supplied.
+#-> Still can't catch socket.gaierror: [Errno -3] Temporary failure in name resolution
+
+
+LAST:
+#-> test the list comprehensions in routers.
+
+#-> pass Mail_in items to services or dict? Bottleneck here. Services may as well
+#   do work asap in which case passing in the mail object is prefered. 
+#   The problem is how to pass the mail object from mail router to job router.
+#   -> Currently the attributes of the relevant class are set from the mail_parameters dict.
+#      This is quite fortunate as if a job fails it's all ready to go again
+#      on the next do_work() loop when the job will have to be retrieved from db anyhow.
+
 """
-
-
-# LAST
-#-> socket.gaierror hard to catch on gmail_out.connect() if no network.
-#   The log gets stuffed if we don't catch it.
-
-#-> Is gmail_reciever a PIP3 installable package? Important for Makefile.
 
 import sys, os
 import logging as logger
@@ -28,13 +51,7 @@ import ravencore.main.config as raven_conf
 from ravencore.utils.exceptions import *
 import ravencore.utils.logging
 
-
-# Reset the db to defaults? DANGER.
-reset_db = True
-raven_conf.reset_db = reset_db
-
-from ravencore.utils.helpers import get_object_attrs
-
+from ravencore.user.user import User
 from ravencore.main.queue import Queue
 from ravencore.main.job import Job
 
@@ -43,81 +60,29 @@ from ravencore.coms.gmail import Gmail_out
 from ravencore.coms.router import Mail_router
 from ravencore.coms.router import Job_router
 
-from ravencore.user.user import User
-from ravencore.user.request import Request
-
-
-# Set up the logging of raven_com.
-ravencore.utils.logging.initialiseLogging()
-
-
-def main():
-    """
-    Raven's main function
-
-    The function from which all else takes place.
-
-    parameters:
-        void
-
-    returns:
-        boolean:
-    """
-    name = 'RAVEN_COM'
-    my_logger = ravencore.utils.logging.getLogger() # Make a logger for this class.
-    my_logger.info("Raven_com v%s" % (raven_conf.basic['version']))
-    my_logger.info("SYS.PATH: %s" % (sys.path))
-
-    queue = Queue()
-
-    ### Here we add 4 important jobs (core functions) to the queue.
-    #
-    # 1. recieve mail task. (ie add mail to db)
-    queue.add_interval_job(recieve_mail, id='recieve_mail', minutes=raven_conf.mail_recieve_interval) # Raven recieve mail.
-    #
-    # 2. send mail task. (ie send mail_out in db)
-    queue.add_interval_job(send_mail, id='send_mail', minutes=raven_conf.mail_send_interval)
-    #
-    # 3. do work task. (ie process jobs in db)
-    queue.add_interval_job(do_work, id='do_work', seconds=raven_conf.raven_do_work_interval)
-    #
-    # 4. look for new work task. (ie add jobs to db from other sources than mail)
-    #queue.add_interval_job(look_for_work, id='look_for_work', seconds=raven_conf.raven_do_work_interval)
-    #
-    ###
-
-
-    ## Some manual stuff for development.
-    # queue.add_cron_job(test_autogrib, id='autogrib', timezone=utc, replace_existing=True, hour=17, minute=30)
-
-
-    #queue.add_instant_job(recieve_mail)
-    #queue.add_instant_job(send_mail)
-
-    queue.sched.print_jobs()
-    #queue.sched.remove_job('mail_recieve')
-    queue.start()
-
-
-
-
 ### Core functions to run as a service. This is it.
-
 def send_mail():
     mail_out = Gmail_out()
-    mail_out.connect()
-    mail_out.send_all() # Send all unsent mail in maildb.
-    mail_out.close()
+
+    if mail_out.exists_unsent():
+        mail_out.connect()
+        mail_out.send_all()
+        mail_out.close()
 
 
 def recieve_mail():
-    mail_in = Gmail_in()
+    imap = Gmail_in()
+    mail_router = Mail_router()
+    job_router = Job_router()
 
-    mail_in.connect()
-    new_mail = mail_in.inbox(prefetch=True, unread=True, mark_as_read=True)
-    mail_in.close()
+    imap.connect()
+    maillist = imap.inbox(prefetch=True, unread=True, mark_as_read=True) # This writes directly to db.
+    imap.close()
 
-    Mail_router(new_mail) # New mail goes to the router which will identify it.
+    joblist = mail_router(maillist).get_joblist() # The router will identify new mail_in items and make jobs out of them.
+
+    job_router(joblist)
+
 
 
 def do_work():
@@ -125,72 +90,101 @@ def do_work():
     completed_jobs = jobs.done()
 
     for job in jobs:
+
         if job.id not in completed_jobs:
             Job_router(job) # The job router can instantiate the right service with job params.
 
 
 def look_for_work():
     """ Walk the users list and look for timeouts on services etc."""
+    
     pass # Who want's to work!
 
 
 
+class Raven_com:
+    """
+    The main service class for raven_com.
 
-### Development stuff here.
+    """
 
-def test_autogrib():
-    #-> This is not very good. The same problem as in Mail_router().
-    # It's not good because the Request object should be able to be passed
-    # directly to job without any hastles like getting at attributes etc.
-    raven_request_instance = Request('user2', 'service1') # Manual selection.
-    job_params = raven_request_instance.raven_job_params
-    new_job = Job(job_params)
+    def __init__(self):
+        """
+        Constructor for Raven_com class.
 
+        parameters:
 
-
-
-def output_db():
-    """ development use """
-    #-> Here we will see the problem of the current dbitem iterator.
-    #   If a none type is come accross all following dbitems will be missed.
-    #   Also the auto-incrementing of dbitems will grab on to the fact that
-    #   the iterator threw a StopIteration exception.
-
-    print("--1--")
-    mail_in_list = Mail()
-    for mail in mail_in_list:
-        print("Found mail.")
-
-    print("--2--")
-    mail_out_list = Mail_out()
-    for mail_out in mail_out_list:
-        print("Found mail out.")
-
-    print("--3--")
-    users = User()
-    for user in users:
-        print("Found user.")
-
-    print("--4--")
-    jobs = Job()
-    for job in jobs:
-        print("Found job.")
+        return:
+            void
+        """
+        name = '.'.join([__name__, self.__class__.__name__])
+        self.logger = ravencore.utils.logging.getLogger(name) 
 
 
-def test_autogrib():
-    """ development use"""
-    raven_job = Request('user2', 'service1')
+    def main(self):
+        """
+        Raven's main function
 
-    mail_out = Gmail_out()#.connect()
-    mail_out.new_mail(raven_job.raven_job_dict['mail'])
-    mail_out.close()
+        The function from which all else takes place.
+
+        parameters:
+            void
+
+        returns:
+            boolean:
+        """
+        queue = Queue()
+
+        ### Here we add 4 important jobs (core functions) to the queue.
+        #
+        # 1. recieve mail task. (ie add mail to db)
+        queue.add_interval_job(recieve_mail, id='recieve_mail', minutes=raven_conf.mail_recieve_interval) # Raven recieve mail.
+        #
+        # 2. send mail task. (ie send mail_out in db)
+        queue.add_interval_job(send_mail, id='send_mail', minutes=raven_conf.mail_send_interval)
+        #
+        # 3. do work task. (ie process jobs in db)
+        queue.add_interval_job(do_work, id='do_work', seconds=raven_conf.raven_do_work_interval)
+        #
+        # 4. look for new work task. (ie add jobs to db from other sources than mail)
+        #queue.add_interval_job(look_for_work, id='look_for_work', seconds=raven_conf.raven_do_work_interval)
+        #
+        ###
+
+        from ravencore.services.newsletter.newsletter import Newsletter_service
+        from ravencore.coms.mail import Mail_in
+        
+        #mail_in = Mail_in('mail_in4')
+        #nl = Newsletter_service('user3', 'service2', mail_in)
+        #queue.sched.remove_job('mail_recieve')
+        #queue.add_instant_job(send_mail)
+        #queue.sched.print_jobs()
+        #queue.start()
+
+
+        Mail_router()
+        
+        Job_router()
+
+
+
+
+
 
 
 if __name__ == "__main__":
 
-    try:
-        main()
+    # Set up the logging of raven_com.
+    ravencore.utils.logging.initialiseLogging()
 
+    my_logger = ravencore.utils.logging.getLogger() 
+    my_logger.info("Raven_com v%s" % (raven_conf.basic['version']))
+    my_logger.info("SYS.PATH: %s" % (sys.path))
+
+    raven = Raven_com()
+
+    try:
+        raven.main()
 
     except KeyboardInterrupt:
         logger.info("Raven halted by keyboard interrupt.")
