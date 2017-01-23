@@ -1,0 +1,423 @@
+#!/usr/bin/env python3
+# Copyright (c) 2017 Kai Weeks.
+#
+# See LICENSE for details.
+"""
+Database tool for raven database.
+
+- Checks dbitems for consistency, warnings raised if data is suspect.
+- Gives statistics on dbitems.
+- Human readable output of dbitems.
+- Manual adding of dbitems.
+- Initial reset db procedures.
+
+"""
+
+import sys, os
+import logging as logger
+import json
+import pprint
+
+# Development. Production should have the dependancies installed.
+#sys.path.insert(0, '/home/sikkaflex/wrkspc/raven/vendor') # absolute
+sys.path.insert(0, os.path.join(sys.path[0], 'vendor')) # relative
+
+import ravencore.main.config as raven_conf
+from ravencore.utils.exceptions import *
+import ravencore.utils.logging
+
+import dbdefaults
+
+from ravencore.user.user import User
+from ravencore.main.job import Job
+from ravencore.coms.mail import Newsletter, Mail_out, Mail_in
+
+from ravencore.utils.helpers import merge_dicts2 as merge_parameters
+from ravencore.utils.helpers import search_dict
+
+
+PARAMS = {
+    'user': {
+        'instance': 'user',#User(),
+        'attributes': {
+            'all': list(raven_conf.user_default_params.keys()),
+            'basic': [
+                'name',
+                'email',
+                'alternate_email',
+                'password',
+            ],
+        },
+    },
+    'mail_in': {
+        'instance': 'mail_in',#Mail_in(),
+        'attributes': {
+            'all': list(raven_conf.mail_in_default_params.keys()),
+            'basic': [
+                'fr',
+                'subject',
+            ],
+            'all_not_headers': [
+                attr for attr in list(raven_conf.mail_in_default_params.keys())
+                if attr not in ['headers']
+            ],
+            'custom': [
+                attr for attr in list(raven_conf.mail_in_default_params.keys())
+                if attr not in ['headers', 'html', 'body']
+            ],
+            'content': [
+                'fr',
+                'subject',
+                'body',
+            ],
+        },
+    },
+    'mail_out': {
+        'instance': 'mail_out',#Mail_out(),
+        'attributes': {
+            'all': list(raven_conf.mail_out_default_params.keys()),
+            'basic': [
+                'to',
+                'sender',
+                'user_id',
+                'subject',
+                #'text',
+            ],
+        },
+    },
+    'newsletter': {
+        'instance': 'newsletter',#Newsletter(),
+        'attributes': {
+            'all': list(raven_conf.newsletter_default_params.keys()),
+            'basic': [
+                'subject',
+                'subscribers',
+                'sender',
+                'user_id',
+            ],
+        },
+    },
+    'job': {
+        'instance': 'job',#Job(),
+        'attributes': {
+            'all': list(raven_conf.job_default_params.keys()),
+            'basic': [
+                'user_id',
+                'mail_in_id',
+                'on_behalf_of_user',
+                'user_service_id',
+                'service_sequence_type',
+                'service_alias',
+                #'created',
+                'request_carrier',
+                #'debug',
+            ],
+        },
+    },
+}
+
+
+class Db_tool:
+    """
+    Class representing the raven db_tool.
+
+    """
+
+
+    def __init__(self):
+        """
+        Constructor for class.
+
+        parameters:
+            incoming_mail_out_params: dict. Mail_out parameters
+
+        return:
+            void
+        """
+        name = '.'.join([__name__, self.__class__.__name__])
+        self.logger = ravencore.utils.logging.getLogger(name)
+
+        self.db = raven_conf.dbredis()
+
+    def read_param(self):
+        try:
+            if sys.argv[1] == 'reset':
+                while True:
+                    opt = input("Really reset it all? (y/n)")
+                    if opt == 'y':
+                        self.__reset_users()
+                        self.__reset_newsletters()
+                        self.__reset_mail_in()
+                        self.__reset_mail_out()
+                        self.__reset_job()
+                        break
+                    elif opt == 'n': break
+        except IndexError:
+            pass
+
+
+    def main(self):
+        """
+        Db_tool for Raven main function
+
+        parameters:
+            void
+
+        returns:
+            boolean:
+        """
+        self.read_param()
+
+        my_dict = {
+            'items_type': 'mail_in',
+            'item_id_str': '',
+            'print_level': None,
+            'check': True,
+            'depth': 4,
+            'search': '',
+        }
+        #self.output_items(**my_dict)
+        my_dict = {
+            'items_type': 'job',
+            'item_id_str': '',
+            'print_level': None,
+            'check': True,
+            'depth': 4,
+            'search': '',
+        }
+        #self.output_items(**my_dict)
+        my_dict = {
+            'items_type': 'user',
+            'item_id_str': '',
+            'print_level': 'all',
+            'check': True,
+            'depth': 4,
+            'search': 'recipients',
+        }
+        self.output_items(**my_dict)
+        my_dict = {
+            'items_type': 'mail_out',
+            'item_id_str': '',
+            'print_level': None,
+            'check': True,
+            'depth': 4,
+            'search': '',
+        }
+        #self.output_items(**my_dict)
+
+
+    def output_items(self, items_type=None,item_id_str=None,print_level=['basic'],check=True,depth=2,search=None):
+        """
+        Gets an item or iterates through multiple items in db and prints.
+
+        Print levels correspond to object attributes and weather or not they should be output.
+        If None is passed then attributes under alias 'basic' will be printed.
+
+        A search string can be supplied in which case the attributes them selves, and their value if
+        their value is a dictionary will be checked for a match. Only a match will have the value printed.
+        Note that the search only searches attributes which are in print_level.
+
+        parameters:
+            items_type: obj. An instance of a Dbitem subclass as an iterator.
+            item_id_str: string. If a single object is to be printed.
+            print_level: string. Decide which levels(attributes) to print.
+            check: bool. Check if object has all the required attributes.
+            depth: int. How far to descend into nested data structures. (Does not apply to search)
+            search: string. If set only values a key matching the search will be printed.
+
+        return:
+            void
+        """
+        tmp = PARAMS.get(items_type)
+        instance = tmp.get('instance')
+        attr_categ = tmp.get('attributes')
+        if print_level is None: print_level = 'basic'
+        attributes = attr_categ[print_level]
+        net_pass = True # If any item fails check this is set to False.
+        check_str = ""
+        counter = 0
+
+        #-> This is not done right. This is so that if item_id_str is set
+        #   then the instatiated class will be a non-iterable. Current hackish workaround:
+        if instance == 'user':
+            items = User(item_id_str)
+        if instance == 'mail_in':
+            items = Mail_in(item_id_str)
+        if instance == 'mail_out':
+            items = Mail_out(item_id_str)
+        if instance == 'newsletter':
+            items = Newsletter(item_id_str)
+        if instance == 'job':
+            items = Job(item_id_str)
+
+        for item in items:
+            counter += 1
+            search_res = [] # If a search is on the results go here as (path, value) tuples.
+            attrs_not_set = [] # A list of attributes not set. ie. None, [], ''.
+            item.fetch()
+            procsd = "(old)" if item.is_processed() else "(new)"
+
+            if check:
+                item_pass, check_str = self.check_item(item)
+                net_pass = item_pass if not item_pass else net_pass
+
+            print("\n%s\t%s:\t\t\t%s" % (procsd, item.id, check_str))
+
+            for attr in attributes:
+                data = getattr(item, attr, None)
+
+                if not search:
+
+                    if data in [None, [], '', {}]:
+                        attrs_not_set.append(attr)
+
+                        continue
+
+                    elif isinstance(data, dict):
+                        print(attr + ":")
+                        pprint.pprint(data, depth=depth)
+
+                    else:
+                        print("%s: %s" % (attr, data))
+
+                if search:
+
+                    if attr == search:
+                        search_res.append(([attr], data))
+
+                    if isinstance(data, dict):
+                        search_res += search_dict(search, data, [attr])
+
+            if search_res:
+                print("Search results for '%s': " % (search))
+
+                for path, value in search_res:
+
+                    if isinstance(value, dict):
+                        print("path: %s value:" % (path))
+                        pprint.pprint(value, depth=depth)
+
+                    else:
+                        print("path: '%s' value: '%s':" % (path, value))
+
+            else:
+                print("No results found for search: '%s'" % (search))
+
+            not_listed = [attr for attr in item.default_attributes if attr not in attributes]
+            if attrs_not_set: print("printed but empty attributes: %s" % (attrs_not_set))
+            if not_listed: print("non-printed attributes count: %s" % (len(not_listed)))
+
+        if counter == 0:
+            print("\nNo relevant %s items found matching '%s'." % (items_type, item_id_str))
+
+
+    def check_item(self, item):
+        """
+        Checks that the db item has all the required attributes.
+
+        parameters:
+            item: obj. The instance of a dbitem subclass.
+
+        return:
+            void
+        """
+        net_pass = True
+        failed_attr_str = ""
+        net_chck_res_str = "(attr_check: OK)"
+
+        for attr in item.default_attributes:
+            data = getattr(item, attr, 'error')
+
+            if data is 'error':
+                self.logger.warning("%s is lacking an attribute: %s" % (item.id, attr))
+                #raise ValueError("%s is lacking an attribute: %s" % (item.id, attr))
+                net_pass = False
+                failed_attr_str += attr + ","
+
+        if not net_pass:
+            net_chck_res_str = "(attr_check: FAILED - %s)" % (failed_attr_str)
+
+        return net_pass, net_chck_res_str
+
+
+
+### Object specific methods for reseting object presence in db.
+
+    def __reset_apscheduler(self):
+        """
+        Removes all the jobs and jobstores for the Apscheduler.
+
+        parameters:
+
+        return:
+            void
+        """
+        self.db.delete(raven_conf.apscheduler_runtime_keys_redis)
+        self.db.delete(raven_conf.apscheduler_jobstore_redis)
+
+
+    def __reset_users(self):
+        """
+        Resets the users to defaults.
+
+        parameters:
+
+        return:
+            void
+        """
+        user_count = 0
+
+        for user_id, user_dict in dbdefaults.base_userdb.items():
+            user_count += 1
+
+            user_params = dict(merge_parameters(raven_conf.user_default_params, user_dict))
+            self.db.set(user_id, json.dumps(user_params))
+        #-> User() also has a processed key. It is not reset here.
+        self.logger.info("User database loaded with %s default users." % (user_count))
+
+    def __reset_newsletters(self):
+        keep = []
+        items = Newsletter()
+        [self.db.delete(item.id) for item in items if item.id not in keep]
+        self.db.delete(items.get_processed_key())
+
+    def __reset_mail_in(self):
+        keep = ['mail_in1', 'mail_in2', 'mail_in3']
+        items = Mail_in()
+        [self.db.delete(item.id) for item in items if item.id not in keep]
+        self.db.delete(items.get_processed_key())
+
+    def __reset_mail_out(self):
+        keep = []#['mail_out1', 'mail_out2', 'mail_out3']
+        items = Mail_out()
+        [self.db.delete(item.id) for item in items if item.id not in keep]
+        self.db.delete(items.get_processed_key())
+
+    def __reset_job(self):
+        keep = []# ['job1', 'job2', 'job3']
+        items = Job()
+        [self.db.delete(item.id) for item in items if item.id not in keep]
+        self.db.delete(items.get_processed_key())
+
+
+
+
+
+if __name__ == "__main__":
+
+    # Set up the logging of db_tools.
+    ravencore.utils.logging.initialiseLogging()
+
+    my_logger = ravencore.utils.logging.getLogger() # Make a logger for this script.
+    my_logger.info("Db_tool for Raven_com v%s" % (raven_conf.basic['version']))
+    my_logger.info("SYS.PATH: %s" % (sys.path))
+
+    db_tool = Db_tool()
+
+
+    try:
+        db_tool.main()
+
+    except KeyboardInterrupt:
+        logger.info("Db_tool halted by keyboard interrupt.")
+        sys.exit(0)
