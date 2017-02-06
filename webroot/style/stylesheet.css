@@ -1,0 +1,136 @@
+input, textarea { 
+    padding: 9px; 
+    border: solid 1px #E5E5E5; 
+    outline: 0; 
+    font: normal 13px/100% Verdana, Tahoma, sans-serif; 
+    width: 200px; 
+    background: #FFFFFF url('bg_form.png') left top repeat-x; 
+    background: -webkit-gradient(linear, left top, left 25, from(#FFFFFF), color-stop(4%, #EEEEEE), to(#FFFFFF)); 
+    background: -moz-linear-gradient(top, #FFFFFF, #EEEEEE 1px, #FFFFFF 25px); 
+    box-shadow: rgba(0,0,0, 0.1) 0px 0px 8px; 
+    -moz-box-shadow: rgba(0,0,0, 0.1) 0px 0px 8px; 
+    -webkit-box-shadow: rgba(0,0,0, 0.1) 0px 0px 8px;
+    } 
+   
+textarea { 
+    width: 400px; 
+    max-width: 400px; 
+    height: 150px; 
+    line-height: 150%; 
+    } 
+   
+input:hover, textarea:hover, 
+input:focus, textarea:focus { 
+    border-color: #C9C9C9; 
+    -webkit-box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 8px; 
+    } 
+   
+.form label { 
+    margin-left: 10px; 
+    color: #999999; 
+    } 
+   
+.submit input { 
+    width: auto; 
+    padding: 9px 15px; 
+    background: #617798; 
+    border: 0; 
+    font-size: 14px; 
+    color: #FFFFFF; 
+    -moz-border-radius: 5px; 
+    -webkit-border-radius: 5px; 
+    }
+
+form {
+    border: solid 1px black;
+    padding: 2em;
+    margin: 2em;
+    width: 70%;
+}
+
+
+thead {
+    color:green;
+}
+tbody {
+    color:blue;
+}
+tfoot {
+    color:red;
+}
+
+table,th,td {
+    border:1px
+    solid black;
+}
+
+
+/*
+<form class="form">    
+    <p class="name"> 
+        <input type="text" name="name" id="name" /> 
+        <label for="name">Name</label> 
+    </p> 
+    <p class="email"> 
+        <input type="text" name="email" id="email" /> 
+        <label for="email">E-mail</label> 
+    </p> 
+    <p class="web"> 
+        <input type="text" name="web" id="web" /> 
+        <label for="web">Website</label> 
+    </p> 
+    <p class="text"> 
+        <textarea name="text"></textarea> 
+    </p> 
+    <p class="submit"> 
+        <input type="submit" value="Send" /> 
+    </p> 
+</form>
+*/
+
+
+/*
+<!DOCTYPE html><html><head><style>thead {color:green;}
+tbody {color:blue;}
+tfoot {color:red;}
+table,th,td
+{border:1px solid black;}
+</style>
+</head>
+<body>
+<table border="1" style="width:300px">
+<thead>
+<tr>
+<th>Name</th>
+<th>Surname</th>
+<th>Telephone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Jack</td>
+<td>Sales</td>
+<td>555-5555</td>
+</tr>
+<tr>
+<td>John</td>
+<td>Admin</td>
+<td>555-5555</td>
+</tr>
+<tr>
+<td>James</td>
+<td>Sales</td>
+<td>555-5555</td>
+</tr>
+<tbody>
+<tfoot>
+<tr>
+<td>Total</td>
+<td>Total</td>
+<td>Total</td>
+</tr>
+</tfoot>
+</table>
+</body>
+</html>
+*/
