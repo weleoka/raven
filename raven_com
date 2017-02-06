@@ -11,41 +11,48 @@ Please report any issues to weleoka at github.
 #-> Gmail bloat on messages. About 1400 bytes per message!
 #-> Max subject length?
 #-> Iridium mail client for linux.
+
 #-> What are dict_keys and dict_items objects? From calling dict.keys() or dict.items()?
-#-> How to get something out of a class when iterating over it,
-    even if StopIteration is reached instantly.
-    Basically; how to return self and raise StopIteration at the same time?
-#-> dbitem.__iter__ raises FutureWarning.
-    /usr/lib/python3.5/re.py:203: FutureWarning: split() requires a non-empty pattern match.
-    return _compile(pattern, flags).split(string, maxsplit)
+#-> How to get something out of a class when iterating over it, even if StopIteration is reached instantly.
+Basically; how to return self and raise StopIteration at the same time?
+#-> dbitem.__iter__ raises FutureWarning. /usr/lib/python3.5/re.py:203: FutureWarning: split()
+requires a non-empty pattern match.
+return _compile(pattern, flags).split(string, maxsplit)
 #-> How to make a protected class only to be instantiated by child classes?
-#-> How to pass multiple return values directly to another function.
-#-> How to include a counter in a list comprehension.
-#-> object_to_dict list comprehension in utils.helpers or main.dbitem.to_dict()
-#-> Can an object be instatiated within a list comprehension?
+#-> listcomp: How to include a counter in a list comprehension.
+#-> listcomp: How to use an else clause [x.modify() for x in xs if x in good else x.assassinate()]
 #-> Using eval to clear up the issue of db_tool not iterating if item_id_str supplied.
-#-> Still can't catch socket.gaierror: [Errno -3] Temporary failure in name resolution
+#-> Still can't catch socket.gaierror: [Errno -3] Temporary failure in name resolution.
+#-> JSON.dumps turns python tuples into lists.
+#-> What to do with unused dictionary **args just pass them on into an new **args?
 
 
 LAST:
-#-> test the list comprehensions in routers.
+#-> Make the look for work function... Send again unsent newsletters etc.
+#-> Some symbols not decoded with pythons standard bytes.decode('utf-8') maybe email.utils.decode()?
+#-> Mail attatchments cant be serialised. Mail_in.attachments attribute needs pre-processing.
 
-#-> pass Mail_in items to services or dict? Bottleneck here. Services may as well
-#   do work asap in which case passing in the mail object is prefered. 
-#   The problem is how to pass the mail object from mail router to job router.
-#   -> Currently the attributes of the relevant class are set from the mail_parameters dict.
-#      This is quite fortunate as if a job fails it's all ready to go again
-#      on the next do_work() loop when the job will have to be retrieved from db anyhow.
+#-> When dbitems set_parameters is called, if some first level dict items are not present in default
+dict but exist in incoming dict then notify. This is to catch typos and aid development.
+
+#-> Newsletter can be sent from multiple addresses and will pipe out according to mail_out_paramaeters.
+Currently trying to get db tool to be useful for helping to find source_addresses in users services.
+
+What we need to do is first search for attributes "source_addresses" then search for values in those
+paths, and finally then take the first level of the path because that is the user_id... either this or
+simply just search for value. The trouble is the value may be found but not only in source_addresses.!
+
+Modify Mail_router to process results from db_tool. Create multiple instances of Newsletter service.
 
 """
 
 import sys, os
 import logging as logger
-import pprint
+
 
 # Development. Production should have the dependancies installed.
 #sys.path.insert(0, '/home/sikkaflex/wrkspc/raven/vendor') # absolute
-sys.path.insert(0, os.path.join(sys.path[0], 'vendor')) # relative
+sys.path.insert(0, os.path.join(sys.path[0], 'vendor'))  # relative
 
 import ravencore.main.config as raven_conf
 from ravencore.utils.exceptions import *
@@ -79,7 +86,8 @@ def recieve_mail():
     maillist = imap.inbox(prefetch=True, unread=True, mark_as_read=True) # This writes directly to db.
     imap.close()
 
-    joblist = mail_router(maillist).get_joblist() # The router will identify new mail_in items and make jobs out of them.
+    # The router will identify new mail_in items and make jobs out of them.
+    joblist = mail_router(maillist).get_joblist()
 
     job_router(joblist)
 
@@ -92,12 +100,13 @@ def do_work():
     for job in jobs:
 
         if job.id not in completed_jobs:
-            Job_router(job) # The job router can instantiate the right service with job params.
+            # The job router can instantiate the right service with job params.
+            Job_router(job)
 
 
 def look_for_work():
     """ Walk the users list and look for timeouts on services etc."""
-    
+
     pass # Who want's to work!
 
 
@@ -118,7 +127,7 @@ class Raven_com:
             void
         """
         name = '.'.join([__name__, self.__class__.__name__])
-        self.logger = ravencore.utils.logging.getLogger(name) 
+        self.logger = ravencore.utils.logging.getLogger(name)
 
 
     def main(self):
@@ -138,22 +147,34 @@ class Raven_com:
         ### Here we add 4 important jobs (core functions) to the queue.
         #
         # 1. recieve mail task. (ie add mail to db)
-        queue.add_interval_job(recieve_mail, id='recieve_mail', minutes=raven_conf.mail_recieve_interval) # Raven recieve mail.
+        queue.add_interval_job(
+            recieve_mail,
+            id='recieve_mail',
+            minutes=raven_conf.mail_recieve_interval
+        )
         #
         # 2. send mail task. (ie send mail_out in db)
-        queue.add_interval_job(send_mail, id='send_mail', minutes=raven_conf.mail_send_interval)
+        queue.add_interval_job(
+            send_mail,
+            id='send_mail',
+            minutes=raven_conf.mail_send_interval
+        )
         #
         # 3. do work task. (ie process jobs in db)
-        queue.add_interval_job(do_work, id='do_work', seconds=raven_conf.raven_do_work_interval)
+        queue.add_interval_job(
+            do_work,
+            id='do_work',
+            seconds=raven_conf.do_work_interval
+        )
         #
         # 4. look for new work task. (ie add jobs to db from other sources than mail)
-        #queue.add_interval_job(look_for_work, id='look_for_work', seconds=raven_conf.raven_do_work_interval)
+        #queue.add_interval_job(look_for_work, id='look_for_work', seconds=raven_conf.do_work_interval)
         #
         ###
 
         from ravencore.services.newsletter.newsletter import Newsletter_service
         from ravencore.coms.mail import Mail_in
-        
+
         #mail_in = Mail_in('mail_in4')
         #nl = Newsletter_service('user3', 'service2', mail_in)
         #queue.sched.remove_job('mail_recieve')
@@ -162,9 +183,9 @@ class Raven_com:
         #queue.start()
 
 
-        Mail_router()
-        
-        Job_router()
+        joblist = Mail_router().get_joblist()
+
+        Job_router(joblist)
 
 
 
@@ -177,9 +198,9 @@ if __name__ == "__main__":
     # Set up the logging of raven_com.
     ravencore.utils.logging.initialiseLogging()
 
-    my_logger = ravencore.utils.logging.getLogger() 
+    my_logger = ravencore.utils.logging.getLogger()
     my_logger.info("Raven_com v%s" % (raven_conf.basic['version']))
-    my_logger.info("SYS.PATH: %s" % (sys.path))
+    #my_logger.info("SYS.PATH: %s" % (sys.path))
 
     raven = Raven_com()
 
