@@ -27,22 +27,21 @@ return _compile(pattern, flags).split(string, maxsplit)
 #-> What to do with unused dictionary **args just pass them on into an new **args?
 
 
+CONSIDER:
+#-> Port select gen_select_opts (dipdap) to CForm and later form_key from netbook.
+We'll also have to make a validation rule for select opts, again port from dipdap.
+
+
 LAST:
 #-> Make the look for work function... Send again unsent newsletters etc.
 #-> Some symbols not decoded with pythons standard bytes.decode('utf-8') maybe email.utils.decode()?
-#-> Mail attatchments cant be serialised. Mail_in.attachments attribute needs pre-processing.
+#-> Mail attachments cant be serialised. Mail_in.attachments attribute needs pre-processing.
 
 #-> When dbitems set_parameters is called, if some first level dict items are not present in default
 dict but exist in incoming dict then notify. This is to catch typos and aid development.
 
-#-> Newsletter can be sent from multiple addresses and will pipe out according to mail_out_paramaeters.
-Currently trying to get db tool to be useful for helping to find source_addresses in users services.
 
-What we need to do is first search for attributes "source_addresses" then search for values in those
-paths, and finally then take the first level of the path because that is the user_id... either this or
-simply just search for value. The trouble is the value may be found but not only in source_addresses.!
-
-Modify Mail_router to process results from db_tool. Create multiple instances of Newsletter service.
+#-> Modify Mail_router to process results from db_tool. Create multiple instances of Newsletter service.
 
 """
 

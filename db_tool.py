@@ -5,8 +5,9 @@
 """
 Database tool for raven database.
 
-- Checks dbitems for consistency, warnings raised if data is suspect.
+- Checks dbitems for consistency, warnings raised if data is non-conformant.
 - Gives statistics on dbitems.
+- Advanced searches in datastructures.
 - Human readable output of dbitems.
 - Manual adding of dbitems.
 - Initial reset db procedures.
@@ -156,14 +157,17 @@ class Db_tool:
         try:
             if sys.argv[1] == 'reset':
                 while True:
-                    opt = input("Really reset it all? (y/n)")
+                    opt = input("Really reset it all or only default data structures (d)? (y/n/d)")
                     if opt == 'y':
                         self.__reset_users()
                         self.__reset_newsletters()
                         self.__reset_mail_in()
                         self.__reset_mail_out()
                         self.__reset_job()
+                        self.__reset_default_data_structures()
                         break
+                    elif opt == 'd':
+                        self.__reset_default_data_structures()
                     elif opt == 'n': break
         except IndexError:
             pass
@@ -180,57 +184,6 @@ class Db_tool:
             boolean:
         """
         self.read_param()
-
-        my_dict = {
-            'items_type': 'mail_in',
-            'item_id_str': '',
-            'attr_category': [None],
-            'check': True,
-            'depth': 4,
-            'search': '',
-        }
-        #self.process_items(**my_dict)
-        my_dict = {
-            'items_type': 'job',
-            'item_id_str': '',
-            'attr_category': [None],
-            'check': True,
-            'depth': 4,
-            'search': '',
-        }
-        #self.process_items(**my_dict)
-        my_dict = {
-            'items_type': 'user',
-            'item_id_str': '',
-            'attr_category': ['basic'],
-            'attr': ['services'],
-            'check': True,
-            'depth': 4,
-            'search': ['maluel40.transat@gmail.com'],
-            'search_path': ['parameters', 'source_addresses'],
-            'output_level': 'search',
-            'output_pipe': 'return',
-        }
-        print(self.process_items(**my_dict))
-
-        my_dict = {
-            'items_type': 'mail_out',
-            'item_id_str': '',
-            'attr_category': [None],
-            'check': True,
-            'depth': 4,
-            'search': '',
-        }
-        #self.process_items(**my_dict)
-        my_dict = {
-            'items_type': 'newsletter',
-            'item_id_str': '',
-            'attr_category': [None],
-            'check': True,
-            'depth': 4,
-            'search': None,
-        }
-        #self.process_items(**my_dict)
 
 
     def process_items(self, items_type=None,item_id_str=None,attr_category=['basic'],attr=[],
@@ -266,7 +219,7 @@ class Db_tool:
 
         if attr_category is None:
             attr_category = ['basic']
-        if attr_category:
+        else:
             for cat in attr_category:
                 attributes += tmp.get('attr_category')[cat]
         if attr:
@@ -289,7 +242,6 @@ class Db_tool:
 
         for item in items:
             item.fetch()
-
             i += 1
 
             attrs_not_set = [] # A list of attributes not set. ie. None, [], ''.
@@ -323,22 +275,21 @@ class Db_tool:
                 else:
                     op += ["\n{}: {}".format(attr, data)]
 
-            if search:
-                self.search_in_item(item, attributes, search, **kwargs)
-
-            self.output_handler(op, **kwargs)
+            self.search_in_item(item, attributes, search, **kwargs)
+            self.output_handler(item, op, **kwargs)
 
         if i == 0:
             op += ["\n\nNo relevant %s items in db." % (items_type)]
 
-        return self.output_handler(op, iter_complete=True, **kwargs)
+        return self.output_handler(item, op, iter_complete=True, **kwargs)
 
 
-    def output_handler(self,output=None,iter_complete=False,output_level='all',output_pipe='stdout', **kwargs):
+    def output_handler(self,item,output=None,iter_complete=False,output_level='all',output_pipe='stdout', **kwargs):
         """
         Parameters select which output and to route to where.
 
         parameters:
+            item: obj. The item.
             output_level: string. What to output
                 - 'all' keep all output to pass on.
                 - 'search' keep search results only.
@@ -360,7 +311,7 @@ class Db_tool:
                 if not iter_complete:
                     output += self.format_search_res()
                 elif iter_complete:
-                    print(''.join(output))
+                    print("{}".format(''.join(output)))
             elif output_pipe == 'return':
                 if iter_complete:
                     return output
@@ -369,21 +320,26 @@ class Db_tool:
             if output_pipe == 'stdout':
                 if not iter_complete:
                     # output += self.format_search_res()
-                    print(''.join(self.format_search_res()))
+                    print("\n{}".format(item.id))
+                    print("{}".format(''.join(self.format_search_res())))
                 elif iter_complete:
                     pass
                     # print(''.join(output))
             elif output_pipe == 'return':
                 if iter_complete:
+                    if len(self.attr_search_res) > 1:
+                        self.attr_search_res = [res for res in self.attr_search_res if res]
+                    if len(self.data_search_res) > 1:
+                        self.data_search_res = [res for res in self.data_search_res if res]
                     return self.attr_search_res, self.data_search_res
 
 
     def search_in_item(self, item, attributes, search, search_path=[], **kwargs):
         """
-        Searches an items attribute looking.
+        Searches an objects attributes.
 
         parameters:
-            item: obj. The item whos attributes are being searched.
+            item: obj. The item who's attributes are being searched.
             attributes: The attributes being searched.
             search: list. A list of strings to search for.
             search_path: list. Only return results from specific path.
@@ -391,6 +347,7 @@ class Db_tool:
         return:
             void
         """
+        if not search: return
         self.search_param = search
 
         for attr in attributes:
@@ -402,17 +359,38 @@ class Db_tool:
                 if attr == search_str:
                     self.attr_search_res.append((top_path, data))
                 if data == search_str:
-                    self.data_search_res.append((top_path, data))
+                    self.data_search_res.append(top_path)
 
                 if isinstance(data, dict):
                     self.attr_search_res += search_dict_keys(search_str, data, top_path)
                     self.data_search_res += search_dict_values(search_str, data, top_path)
 
         if search_path:
-            self.data_search_res = [
-                (path, value) for path, value in self.data_search_res
-                if len([search_path_item for search_path_item in search_path if search_path_item in path]) == len(search_path)
-            ]
+            tmp_list = []
+
+            for search_res in self.data_search_res:
+                if len(search_res) == len(search_path): # They are equal length.
+                    #print("We are equal", search_res, search_path)
+                    matches = [ # All search_path_items have to exist in search_res.
+                        search_path_item for search_path_item in search_path
+                        if search_path_item in search_res
+                    ]
+
+                    if len(matches) == len(search_path):
+                        tmp_list.append(search_res)
+
+                else:
+                    #print("We are not equal.", search_res, len(search_res), search_path, len(search_path))
+                    pass
+            self.data_search_res = tmp_list
+
+            # self.data_search_res = [
+            #     search_res for search_res in self.data_search_res # The search results, a list of lists.
+            #     if len([ # All search_path_items have to exist in search_res.
+            #         search_path_item for search_path_item in search_path
+            #         if search_path_item in [search_res for search_res in self.data_search_res]
+            #     ]) == len(search_path)
+            # ]
 
 
     def format_search_res(self):
@@ -440,7 +418,7 @@ class Db_tool:
         if self.data_search_res:
             search_res_output += ["\nValue search results for {}".format(self.search_param)]
             search_res_output += [
-                "\n['{}'] in path: {}".format(value, path) for path, value in self.data_search_res
+                "\n{}".format(path) for path in self.data_search_res
             ]
 
         elif not self.attr_search_res and not self.data_search_res:
@@ -478,7 +456,6 @@ class Db_tool:
             items = Job(item_id_str)
 
         return items
-
 
 
     def check_item(self, item):
@@ -568,6 +545,9 @@ class Db_tool:
         [self.db.delete(item.id) for item in items if item.id not in keep]
         self.db.delete(items.get_processed_key())
 
+    def __reset_default_data_structures(self):
+        for dds_name, dds_data in raven_conf.default_data_structures.items():
+            self.db.set(dds_name, json.dumps(dds_data))
 
 if __name__ == "__main__":
 
